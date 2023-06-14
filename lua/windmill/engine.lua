@@ -1,4 +1,3 @@
--- todo: runner: terminal or luafile/luaeval/source
 -- todo: limit output size
 
 local M = {}
@@ -7,6 +6,7 @@ local jelly = require("infra.jellyfish")("windmill.engine", vim.log.levels.WARN)
 local bufrename = require("infra.bufrename")
 local ex = require("infra.ex")
 local unsafe = require("infra.unsafe")
+local prefer = require("infra.prefer")
 
 local api = vim.api
 
@@ -19,13 +19,13 @@ local facts = {
 
 local state = {
   -- should only use one window
-  win_id = nil,
+  winid = nil,
   -- {bufnr: tick}
   changes = {},
 
   is_win_valid = function(self)
-    if self.win_id == nil then return false end
-    return api.nvim_win_is_valid(self.win_id)
+    if self.winid == nil then return false end
+    return api.nvim_win_is_valid(self.winid)
   end,
   is_buf_changed = function(self, bufnr)
     local old_tick = self.changes[bufnr]
@@ -39,16 +39,16 @@ local TermView = (function()
   local count = 0
 
   local function resolve_win()
-    if state:is_win_valid() then return state.win_id end
+    if state:is_win_valid() then return state.winid end
 
     ex("split")
     ex("wincmd", "J")
-    local win_id = api.nvim_get_current_win()
+    local winid = api.nvim_get_current_win()
     if facts.keep_focus then ex("wincmd", "p") end
 
     do
       -- same as nvim_open_win(style=minimal)
-      local wo = vim.wo[win_id]
+      local wo = prefer.win(winid)
       wo.number = false
       wo.relativenumber = false
       wo.cursorline = false
@@ -59,12 +59,12 @@ local TermView = (function()
       wo.spell = false
       wo.colorcolumn = ""
     end
-    api.nvim_win_set_height(win_id, facts.window_height)
-    api.nvim_win_set_option(win_id, "winfixheight", true)
+    api.nvim_win_set_height(winid, facts.window_height)
+    prefer.wo(winid, "winfixheight", true)
     -- todo: race condition
-    state.win_id = win_id
+    state.winid = winid
 
-    return win_id
+    return winid
   end
 
   return function()
@@ -96,21 +96,21 @@ local TermView = (function()
     do
       bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_var(bufnr, facts.totem, true)
-      api.nvim_buf_set_option(bufnr, "bufhidden", "wipe")
+      prefer.bo(bufnr, "bufhidden", "wipe")
       bufrename(bufnr, string.format("windmill://%s", view_id))
       api.nvim_create_autocmd("TermClose", {
         buffer = bufnr,
         callback = function(args)
           assert(args.buf == bufnr)
-          assert(api.nvim_buf_get_option(bufnr, "buftype") == "terminal", "once job")
+          assert(prefer.bo(bufnr, "buftype") == "terminal", "once job")
           unsafe.prepare_help_buffer(bufnr)
           return true
         end,
       })
     end
 
-    local win_id = assert(resolve_win())
-    api.nvim_win_set_buf(win_id, bufnr)
+    local winid = assert(resolve_win())
+    api.nvim_win_set_buf(winid, bufnr)
 
     local chan = api.nvim_open_term(bufnr, {
       on_input = function(event, term, _bufnr, data)
@@ -175,8 +175,6 @@ M.run = function(cmd, cwd)
   jelly.debug("proc_chan: %d", proc_chan)
 end
 
-M.is_buf_changed = function(bufnr)
-  return state:is_buf_changed(bufnr)
-end
+M.is_buf_changed = function(bufnr) return state:is_buf_changed(bufnr) end
 
 return M
