@@ -145,7 +145,7 @@ M.run = function(cmd, cwd)
   local proc_chan
   proc_chan = vim.fn.jobstart(cmd, {
     cwd = cwd,
-    width = vim.o.columns,
+    width = vim.go.columns,
     height = facts.tty_height,
     pty = true,
     on_exit = function(job_id, exit_code, event)
