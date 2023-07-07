@@ -1,11 +1,13 @@
 local M = {}
 
-local api = vim.api
+local fn = require("infra.fn")
+local jelly = require("infra.jellyfish")("windmill")
+local prefer = require("infra.prefer")
+
 local engine = require("windmill.engine")
 local find_modeline = require("windmill.find_modeline")
-local jelly = require("infra.jellyfish")("windmill")
-local fn = require("infra.fn")
-local prefer = require("infra.prefer")
+
+local api = vim.api
 
 local filetype_runners = {
   python = { "python" },
@@ -24,10 +26,6 @@ local filetype_runners = {
 function M.autorun()
   local bufnr = api.nvim_get_current_buf()
 
-  if not "practial" then
-    if not engine.is_buf_changed(bufnr) then return jelly.info("no changes since last run") end
-  end
-
   -- try modeline first
   do
     local cmd = find_modeline(bufnr)
@@ -44,20 +42,9 @@ function M.autorun()
     end
   end
 
-  jelly.info("no run cmd available for this buf#%d", bufnr)
+  jelly.info("no runner available for this buf#%d", bufnr)
 end
 
 M.run = engine.run
-
-function M.preview_fennel()
-  -- todo: use jobstart&on_stdout barely instead of termopen
-  local bufnr = api.nvim_get_current_buf()
-  local ft = prefer.bo(bufnr, "filetype")
-  if ft ~= "fennel" then return jelly.warn("only available for ft=fennel") end
-  local fpath = api.nvim_buf_get_name(bufnr)
-  if fpath == "" then return jelly.warn("not available for an unnamed buffer") end
-
-  engine.run({ "fennel", "--compile", "--correlate", fpath })
-end
 
 return M
