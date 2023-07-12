@@ -4,7 +4,7 @@ local M = {}
 
 local bufrename = require("infra.bufrename")
 local ex = require("infra.ex")
-local jelly = require("infra.jellyfish")("windmill.engine", vim.log.levels.INFO)
+local jelly = require("infra.jellyfish")("windmill.engine", "info")
 local prefer = require("infra.prefer")
 local project = require("infra.project")
 local unsafe = require("infra.unsafe")

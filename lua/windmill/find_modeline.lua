@@ -3,8 +3,8 @@
 
 local api = vim.api
 local fn = require("infra.fn")
+local jelly = require("infra.jellyfish")("windmill.modeline", "info")
 local prefer = require("infra.prefer")
-local jelly = require("infra.jellyfish")("windmill.modeline", vim.log.levels.INFO)
 local strlib = require("infra.strlib")
 
 local find_millet_cmd
