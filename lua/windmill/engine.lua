@@ -78,16 +78,21 @@ do
 
     api.nvim_win_set_buf(winid, bufnr)
 
-    local term_chan = api.nvim_open_term(bufnr, {
-      on_input = function(event, term, _bufnr, data)
-        local _, _, _ = event, term, _bufnr
-        assert(view.proc_chan ~= nil)
-        -- necessary for redirecting proc_chan.stdout -> libvterm.stdout -> proc.stdin
-        -- eg, \27[6n
-        vim.fn.chansend(view.proc_chan, data)
-      end,
-    })
-    assert(term_chan ~= 0)
+    local term_chan
+    do
+      term_chan = api.nvim_open_term(bufnr, {
+        on_input = function(event, term, _bufnr, data)
+          local _, _, _ = event, term, _bufnr
+          assert(view.proc_chan ~= nil)
+          -- necessary for redirecting proc_chan.stdout -> libvterm.stdout -> proc.stdin
+          -- eg, \27[6n
+          vim.fn.chansend(view.proc_chan, data)
+        end,
+      })
+      assert(term_chan ~= 0)
+      --follow
+      api.nvim_win_set_cursor(winid, { api.nvim_buf_line_count(bufnr), 0 })
+    end
 
     return setmetatable({ id = id, bufnr = bufnr, term_chan = term_chan, proc_chan = proc_chan }, Prototype)
   end
