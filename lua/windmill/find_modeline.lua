@@ -2,6 +2,7 @@
 -- respects: 'commentstring', 'modelines'
 
 local api = vim.api
+local bufpath = require("infra.bufpath")
 local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill.modeline", "info")
 local prefer = require("infra.prefer")
@@ -41,7 +42,7 @@ do
   end
 end
 
-return function(bufnr)
+return function(bufnr, fpath)
   bufnr = bufnr or api.nvim_get_current_buf()
 
   local parts
@@ -61,7 +62,6 @@ return function(bufnr)
         break
       end
     end
-    local fpath = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":p")
     if placeholder_index == nil then
       table.insert(parts, fpath)
     else

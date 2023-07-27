@@ -1,5 +1,6 @@
 local M = {}
 
+local bufpath = require("infra.bufpath")
 local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill")
 local prefer = require("infra.prefer")
@@ -25,10 +26,12 @@ local filetype_runners = {
 
 function M.autorun()
   local bufnr = api.nvim_get_current_buf()
+  local fpath = bufpath.file(bufnr)
+  if path == nil then return jelly.info("no file associated to buf#d", bufnr) end
 
   -- try modeline first
   do
-    local cmd = find_modeline(bufnr)
+    local cmd = find_modeline(bufnr, fpath)
     if cmd ~= nil then return engine.run(cmd) end
   end
 
@@ -36,7 +39,6 @@ function M.autorun()
   do
     local runner = filetype_runners[prefer.bo(bufnr, "filetype")]
     if runner ~= nil then
-      local fpath = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), "%:p")
       local cmd = fn.concrete(fn.chained(runner, { fpath }))
       return engine.run(cmd)
     end
