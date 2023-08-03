@@ -27,7 +27,7 @@ local filetype_runners = {
 function M.autorun()
   local bufnr = api.nvim_get_current_buf()
   local fpath = bufpath.file(bufnr)
-  if path == nil then return jelly.info("no file associated to buf#d", bufnr) end
+  if fpath == nil then return jelly.info("no file associated to buf#d", bufnr) end
 
   -- try modeline first
   do
@@ -39,7 +39,7 @@ function M.autorun()
   do
     local runner = filetype_runners[prefer.bo(bufnr, "filetype")]
     if runner ~= nil then
-      local cmd = fn.concrete(fn.chained(runner, { fpath }))
+      local cmd = fn.tolist(fn.chained(runner, { fpath }))
       return engine.run(cmd)
     end
   end
