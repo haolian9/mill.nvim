@@ -61,7 +61,7 @@ do
 
     local bufnr
     do
-      bufnr = api.nvim_create_buf(false, true)
+      bufnr = api.nvim_create_buf(false, true) --no ephemeral here
       api.nvim_buf_set_var(bufnr, facts.totem, true)
       prefer.bo(bufnr, "bufhidden", "wipe")
       bufrename(bufnr, string.format("windmill://%s", id))
