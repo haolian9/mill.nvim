@@ -1,5 +1,3 @@
--- todo: limit output size
-
 local M = {}
 
 local bufrename = require("infra.bufrename")
@@ -36,10 +34,7 @@ do
   do
     Prototype.__index = Prototype
 
-    function Prototype:write_all(data)
-      -- todo: limited buffer size
-      vim.fn.chansend(self.term_chan, data)
-    end
+    function Prototype:write_all(data) vim.fn.chansend(self.term_chan, data) end
 
     function Prototype:deinit()
       vim.fn.chanclose(self.term_chan)
