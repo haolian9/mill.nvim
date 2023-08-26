@@ -2,7 +2,6 @@
 -- respects: 'commentstring', 'modelines'
 
 local api = vim.api
-local bufpath = require("infra.bufpath")
 local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill.modeline", "info")
 local prefer = require("infra.prefer")
