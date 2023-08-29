@@ -1,6 +1,7 @@
 local M = {}
 
 local bufrename = require("infra.bufrename")
+local Augroup = require"infra.Augroup"
 local ex = require("infra.ex")
 local jelly = require("infra.jellyfish")("windmill.engine", "info")
 local prefer = require("infra.prefer")
@@ -60,13 +61,13 @@ do
       api.nvim_buf_set_var(bufnr, facts.totem, true)
       prefer.bo(bufnr, "bufhidden", "wipe")
       bufrename(bufnr, string.format("windmill://%d", id))
-      api.nvim_create_autocmd("TermClose", {
-        buffer = bufnr,
+
+      local aug = Augroup.buf(bufnr, true)
+      aug:once("TermClose", {
         callback = function(args)
           assert(args.buf == bufnr)
           assert(prefer.bo(bufnr, "buftype") == "terminal", "once job")
           unsafe.prepare_help_buffer(bufnr)
-          return true
         end,
       })
     end
