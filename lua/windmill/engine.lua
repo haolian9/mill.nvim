@@ -1,7 +1,7 @@
 local M = {}
 
+local Augroup = require("infra.Augroup")
 local bufrename = require("infra.bufrename")
-local Augroup = require"infra.Augroup"
 local ex = require("infra.ex")
 local jelly = require("infra.jellyfish")("windmill.engine", "info")
 local prefer = require("infra.prefer")
@@ -26,7 +26,7 @@ do
   end
 
   ---@class windmill.engine.TermView
-  ---@field id integer @auto_increment count
+  ---@field private id integer @auto_increment count
   ---@field bufnr integer
   ---@field term_chan integer @term chan
   ---@field proc_chan integer @spawned process chan
@@ -47,22 +47,18 @@ do
   ---@alias TermView windmill.engine.TermView
 
   ---@param winid integer
-  ---@param proc_chan integer
   ---@return TermView
-  function TermView(winid, proc_chan)
+  function TermView(winid)
     ---@type TermView
-    local view
+    local view = setmetatable({ id = next_view_id() }, Prototype)
 
-    local id = next_view_id()
-
-    local bufnr
     do
-      bufnr = api.nvim_create_buf(false, true) --no ephemeral here
+      local bufnr = api.nvim_create_buf(false, true) --no ephemeral here
       api.nvim_buf_set_var(bufnr, facts.totem, true)
       prefer.bo(bufnr, "bufhidden", "wipe")
-      bufrename(bufnr, string.format("windmill://%d", id))
+      bufrename(bufnr, string.format("windmill://%d", view.id))
 
-      local aug = Augroup.buf(bufnr, true)
+      local aug = Augroup.buf(bufnr)
       aug:once("TermClose", {
         callback = function(args)
           assert(args.buf == bufnr)
@@ -70,13 +66,21 @@ do
           unsafe.prepare_help_buffer(bufnr)
         end,
       })
+      aug:once("bufwipeout", {
+        callback = function()
+          aug:unlink()
+          if view.proc_chan == nil then return end
+          vim.fn.jobclose(view.proc_chan)
+        end,
+      })
+
+      view.bufnr = bufnr
     end
 
-    api.nvim_win_set_buf(winid, bufnr)
+    api.nvim_win_set_buf(winid, view.bufnr)
 
-    local term_chan
     do
-      term_chan = api.nvim_open_term(bufnr, {
+      local term_chan = api.nvim_open_term(view.bufnr, {
         on_input = function(event, term, _bufnr, data)
           local _, _, _ = event, term, _bufnr
           assert(view.proc_chan ~= nil)
@@ -87,18 +91,25 @@ do
       })
       assert(term_chan ~= 0)
       --follow
-      api.nvim_win_set_cursor(winid, { api.nvim_buf_line_count(bufnr), 0 })
+      api.nvim_win_set_cursor(winid, { api.nvim_buf_line_count(view.bufnr), 0 })
+
+      view.term_chan = term_chan
     end
 
-    return setmetatable({ id = id, bufnr = bufnr, term_chan = term_chan, proc_chan = proc_chan }, Prototype)
+    return view
   end
 end
 
----@class windmill.engine.state
----@field winid integer?  @should use and reuse only one window
----@field view  TermView? @last view
 local state = {}
 do
+  ---should use and reuse only one window
+  ---@type integer?
+  state.winid = nil
+
+  ---last view
+  ---@type TermView?
+  state.view = nil
+
   function state:is_win_valid()
     if self.winid == nil then return false end
     return api.nvim_win_is_valid(self.winid)
@@ -151,7 +162,9 @@ function M.run(cmd, cwd)
   do
     if not state:is_win_valid() then state.winid = open_win() end
 
-    local proc_chan = vim.fn.jobstart(cmd, {
+    view = TermView(state.winid)
+
+    view.proc_chan = vim.fn.jobstart(cmd, {
       cwd = cwd,
       width = vim.go.columns,
       height = facts.tty_height,
@@ -173,8 +186,6 @@ function M.run(cmd, cwd)
       stderr_buffered = false,
       stdin = "pipe",
     })
-    assert(proc_chan > 0)
-    view = TermView(state.winid, proc_chan)
   end
 
   state.view = view

@@ -24,7 +24,7 @@ local filetype_runners = {
   php = { "php" },
 }
 
-function M.autorun()
+function M.ftrun()
   local bufnr = api.nvim_get_current_buf()
   local fpath = bufpath.file(bufnr)
   if fpath == nil then return jelly.info("no file associated to buf#d", bufnr) end
