@@ -7,6 +7,7 @@ local jelly = require("infra.jellyfish")("windmill.engine", "info")
 local prefer = require("infra.prefer")
 local project = require("infra.project")
 local unsafe = require("infra.unsafe")
+local winsplit = require("infra.winsplit")
 
 local api = vim.api
 
@@ -124,7 +125,7 @@ end
 local function open_win()
   local winid
   do -- the same as `:copen`
-    ex("split")
+    winsplit("below")
     ex("wincmd", "J")
     winid = api.nvim_get_current_win()
     if facts.keep_focus then ex("wincmd", "p") end
