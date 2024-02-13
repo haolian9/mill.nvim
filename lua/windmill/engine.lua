@@ -67,7 +67,7 @@ do
           unsafe.prepare_help_buffer(bufnr)
         end,
       })
-      aug:once("bufwipeout", {
+      aug:once("BufWipeout", {
         callback = function()
           aug:unlink()
           if view.proc_chan == nil then return end
