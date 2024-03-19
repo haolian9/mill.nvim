@@ -1,6 +1,3 @@
--- // millet: sh %:p
--- respects: 'commentstring', 'modelines'
-
 local api = vim.api
 local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill.modeline", "info")
@@ -41,9 +38,13 @@ do
   end
 end
 
+---for example: // millet: sh %:p
+---respect: 'commentstring', 'modelines'
+---placeholder: %:p
+---@param bufnr integer
+---@param fpath string @aka, '%:p'
+---@return nil|string[]
 return function(bufnr, fpath)
-  bufnr = bufnr or api.nvim_get_current_buf()
-
   local parts
   do
     local str = find_millet_cmd(bufnr)
