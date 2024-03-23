@@ -17,10 +17,8 @@ local filetype_runners = {
   bash = { "bash" },
   lua = { "luajit" },
   c = { "ccrun" },
-  fennel = { "fennel" },
   go = { "go", "run" },
   nim = { "nim", "compile", "--hints:off", "--run" },
-  rust = { "cargo", "run", "--quiet" },
   php = { "php" },
 }
 
