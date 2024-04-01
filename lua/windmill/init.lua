@@ -1,12 +1,14 @@
 local M = {}
 
 local bufpath = require("infra.bufpath")
+local ex = require("infra.ex")
 local fn = require("infra.fn")
-local jelly = require("infra.jellyfish")("windmill")
+local jelly = require("infra.jellyfish")("windmill", "info")
 local prefer = require("infra.prefer")
+local strlib = require("infra.strlib")
 
 local engine = require("windmill.engine")
-local find_modeline = require("windmill.find_modeline")
+local millets = require("windmill.millets")
 
 local api = vim.api
 
@@ -22,19 +24,28 @@ local filetype_runners = {
   php = { "php" },
 }
 
-function M.ftrun()
+function M.run()
   local bufnr = api.nvim_get_current_buf()
-  local fpath = bufpath.file(bufnr)
-  if fpath == nil then return jelly.info("no file associated to buf#d", bufnr) end
 
-  -- try modeline first
-  do
-    local cmd = find_modeline(bufnr, fpath)
-    if cmd ~= nil then return engine.run(cmd) end
+  local millet = millets.find(bufnr)
+  jelly.debug("millet='%s'", millet)
+  --to support: `source`, `source a.lua`, `source a.vim`
+  if millet and strlib.startswith(millet, "source") then
+    assert(api.nvim_get_mode().mode == "n", "this rhs must be defined as `:lua..<cr>`")
+    -- todo: local result = api.nvim_exec2(millet, {output = true})
+    return ex(millet)
   end
 
-  -- then ft
-  do
+  local fpath = bufpath.file(bufnr)
+  if fpath == nil then return jelly.warn("not exists on disk") end
+
+  if millet then -- try modeline first
+    local cmd = millets.normalize(millet, fpath)
+    assert(cmd[1] ~= "source")
+    return engine.run(cmd)
+  end
+
+  do -- then ft
     local runner = filetype_runners[prefer.bo(bufnr, "filetype")]
     if runner ~= nil then
       local cmd = fn.tolist(fn.chained(runner, { fpath }))
@@ -42,9 +53,7 @@ function M.ftrun()
     end
   end
 
-  jelly.info("no runner available for this buf#%d", bufnr)
+  jelly.warn("no available runner")
 end
-
-M.run = engine.run
 
 return M

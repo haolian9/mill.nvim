@@ -1,10 +1,12 @@
-local api = vim.api
+local M = {}
+
 local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill.modeline", "info")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
 
-local find_millet_cmd
+local api = vim.api
+
 do
   ---@param bufnr number
   ---@return string?
@@ -26,7 +28,9 @@ do
     end
   end
 
-  function find_millet_cmd(bufnr)
+  ---@param bufnr integer
+  ---@return string?
+  function M.find(bufnr)
     local prefix = resolve_millet_prefix(bufnr)
     if prefix == nil then return end
 
@@ -41,16 +45,11 @@ end
 ---for example: // millet: sh %:p
 ---respect: 'commentstring', 'modelines'
 ---placeholder: %:p
----@param bufnr integer
+---@param millet string
 ---@param fpath string @aka, '%:p'
----@return nil|string[]
-return function(bufnr, fpath)
-  local parts
-  do
-    local str = find_millet_cmd(bufnr)
-    if str == nil then return end
-    parts = fn.split(str, " ")
-  end
+---@return string[]
+function M.normalize(millet, fpath)
+  local parts = fn.split(millet, " ")
 
   do -- inject/replace fpath
     local placeholder_index
@@ -71,3 +70,5 @@ return function(bufnr, fpath)
 
   return parts
 end
+
+return M
