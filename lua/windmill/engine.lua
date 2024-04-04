@@ -1,8 +1,11 @@
 local M = {}
 
-local Augroup = require("infra.Augroup")
+local augroups = require("infra.augroups")
 local bufrename = require("infra.bufrename")
+local ctx = require("infra.ctx")
+local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
+local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill.engine", "info")
 local prefer = require("infra.prefer")
 local project = require("infra.project")
@@ -12,54 +15,47 @@ local winsplit = require("infra.winsplit")
 local api = vim.api
 
 local facts = {
-  totem = "windmill",
   tty_height = 10,
   window_height = 10,
   keep_focus = true,
 }
 
+---@class windmill.engine.View
+---@field bufnr      integer
+---@field exit_code? integer @0=ok, >=1 failed
+---@field write_all  fun(data: string[])
+
 local TermView
 do
-  local count = 0
-  local function next_view_id()
-    count = count + 1
-    return count
-  end
-
-  ---@class windmill.engine.TermView
-  ---@field private id integer @auto_increment count
-  ---@field bufnr integer
+  ---@class windmill.engine.TermView : windmill.engine.View
   ---@field term_chan integer @term chan
   ---@field proc_chan integer @spawned process chan
-  ---@field exit_code? integer @of the spawned process
-  local Prototype = {}
+  local Impl = {}
   do
-    Prototype.__index = Prototype
+    Impl.__index = Impl
 
-    function Prototype:write_all(data) vim.fn.chansend(self.term_chan, data) end
+    ---@param data string[]
+    function Impl:write_all(data) vim.fn.chansend(self.term_chan, data) end
 
-    function Prototype:deinit()
+    function Impl:deinit()
       vim.fn.chanclose(self.term_chan)
       self.term_chan = nil
       vim.fn.chanclose(self.proc_chan)
       self.proc_chan = nil
     end
   end
-  ---@alias TermView windmill.engine.TermView
 
   ---@param winid integer
-  ---@return TermView
+  ---@return windmill.engine.TermView
   function TermView(winid)
-    ---@type TermView
-    local view = setmetatable({ id = next_view_id() }, Prototype)
+    local view = setmetatable({}, Impl)
 
     do
       local bufnr = api.nvim_create_buf(false, true) --no ephemeral here
-      api.nvim_buf_set_var(bufnr, facts.totem, true)
       prefer.bo(bufnr, "bufhidden", "wipe")
-      bufrename(bufnr, string.format("windmill://%d", view.id))
+      bufrename(bufnr, string.format("windmill://%d", bufnr))
 
-      local aug = Augroup.buf(bufnr)
+      local aug = augroups.BufAugroup(bufnr, --[[autounlink]] false)
       aug:once("TermClose", {
         callback = function(args)
           assert(args.buf == bufnr)
@@ -101,6 +97,30 @@ do
   end
 end
 
+local SourceView
+do
+  ---@class windmill.engine.SourceView: windmill.engine.View
+  local Impl = {}
+  Impl.__index = Impl
+
+  ---@param data string[]
+  function Impl:write_all(data)
+    assert(type(data) == "table")
+    ctx.modifiable(self.bufnr, function() api.nvim_buf_set_lines(self.bufnr, -2, -1, false, data) end)
+    prefer.bo(self.bufnr, "modified", false)
+    --todo: follow
+    -- api.nvim_win_set_cursor(winid, { api.nvim_buf_line_count(self.bufnr), 0 })
+  end
+
+  function SourceView(winid)
+    local bufnr = Ephemeral({ namepat = "windmill://{bufnr}", modifiable = false })
+
+    api.nvim_win_set_buf(winid, bufnr)
+
+    return setmetatable({ bufnr = bufnr }, Impl)
+  end
+end
+
 local state = {}
 do
   ---should use and reuse only one window
@@ -108,7 +128,7 @@ do
   state.winid = nil
 
   ---last view
-  ---@type TermView?
+  ---@type windmill.engine.TermView|windmill.engine.SourceView|nil
   state.view = nil
 
   function state:is_win_valid()
@@ -152,13 +172,12 @@ end
 
 ---@param cmd string[]
 ---@param cwd? string @nil=cwd
-function M.run(cmd, cwd)
+function M.spawn(cmd, cwd)
   assert(#cmd > 0)
   cwd = cwd or project.working_root()
 
   if state:has_one_running() then return jelly.warn("windmill is still running, refuses to accept new work") end
 
-  ---@type TermView
   local view
   do
     if not state:is_win_valid() then state.winid = open_win() end
@@ -190,6 +209,23 @@ function M.run(cmd, cwd)
   end
 
   state.view = view
+end
+
+function M.source(cmd)
+  local parts = fn.split(cmd, " ", 1)
+  assert(parts[1] == "source")
+
+  local view ---@type windmill.engine.SourceView
+  do
+    if not state:is_win_valid() then state.winid = open_win() end
+    view = SourceView(state.winid)
+    state.view = view
+  end
+
+  local ok, output = pcall(api.nvim_cmd, { cmd = "source", args = { parts[2] } }, { output = true })
+  assert(type(output), "string")
+  view:write_all(fn.split(output, "\n"))
+  view.exit_code = ok and 0 or 1
 end
 
 return M

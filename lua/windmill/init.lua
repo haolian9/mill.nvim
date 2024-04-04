@@ -31,9 +31,7 @@ function M.run()
   jelly.debug("millet='%s'", millet)
   --to support: `source`, `source a.lua`, `source a.vim`
   if millet and strlib.startswith(millet, "source") then
-    assert(api.nvim_get_mode().mode == "n", "this rhs must be defined as `:lua..<cr>`")
-    -- todo: local result = api.nvim_exec2(millet, {output = true})
-    return ex(millet)
+    return engine.source(millet)
   end
 
   local fpath = bufpath.file(bufnr)
@@ -42,14 +40,14 @@ function M.run()
   if millet then -- try modeline first
     local cmd = millets.normalize(millet, fpath)
     assert(cmd[1] ~= "source")
-    return engine.run(cmd)
+    return engine.spawn(cmd)
   end
 
   do -- then ft
     local runner = filetype_runners[prefer.bo(bufnr, "filetype")]
     if runner ~= nil then
       local cmd = fn.tolist(fn.chained(runner, { fpath }))
-      return engine.run(cmd)
+      return engine.spawn(cmd)
     end
   end
 
