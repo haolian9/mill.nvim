@@ -1,5 +1,6 @@
 local M = {}
 
+local buflines = require("infra.buflines")
 local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill.modeline", "info")
 local prefer = require("infra.prefer")
@@ -16,18 +17,6 @@ do
     return string.format(pattern, "millet: ")
   end
 
-  ---@param bufnr number
-  ---@param max number
-  local function reversed_lines(bufnr, max)
-    local total = api.nvim_buf_line_count(bufnr)
-    local start = total
-    local stop = start - max
-    return function()
-      start = start - 1
-      if start >= stop then return api.nvim_buf_get_lines(bufnr, start, start + 1, true)[1] end
-    end
-  end
-
   ---@param bufnr integer
   ---@return string?
   function M.find(bufnr)
@@ -35,7 +24,7 @@ do
     if prefix == nil then return end
 
     local modelines = prefer.bo(bufnr, "modelines")
-    for line in reversed_lines(bufnr, modelines) do
+    for line in fn.slice(buflines.reversed(bufnr), 1, modelines + 1) do
       if strlib.startswith(line, prefix) then return string.sub(line, #prefix + 1) end
     end
     jelly.debug("found no millets in last %d line", modelines)
