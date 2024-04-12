@@ -1,6 +1,7 @@
 local M = {}
 
 local augroups = require("infra.augroups")
+local buflines = require("infra.buflines")
 local bufrename = require("infra.bufrename")
 local ctx = require("infra.ctx")
 local Ephemeral = require("infra.Ephemeral")
@@ -88,7 +89,7 @@ do
       })
       assert(term_chan ~= 0)
       --follow
-      api.nvim_win_set_cursor(winid, { api.nvim_buf_line_count(view.bufnr), 0 })
+      api.nvim_win_set_cursor(winid, { buflines.count(view.bufnr), 0 })
 
       view.term_chan = term_chan
     end
@@ -106,10 +107,10 @@ do
   ---@param data string[]
   function Impl:write_all(data)
     assert(type(data) == "table")
-    ctx.modifiable(self.bufnr, function() api.nvim_buf_set_lines(self.bufnr, -2, -1, false, data) end)
+    ctx.modifiable(self.bufnr, function() buflines.replaces(self.bufnr, -2, -1, data) end)
     prefer.bo(self.bufnr, "modified", false)
     --todo: follow
-    -- api.nvim_win_set_cursor(winid, { api.nvim_buf_line_count(self.bufnr), 0 })
+    -- api.nvim_win_set_cursor(winid, { buflines.count(self.bufnr), 0 })
   end
 
   function SourceView(winid)
