@@ -11,6 +11,7 @@ local jelly = require("infra.jellyfish")("windmill.engine", "info")
 local prefer = require("infra.prefer")
 local project = require("infra.project")
 local unsafe = require("infra.unsafe")
+local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
 
 local api = vim.api
@@ -89,7 +90,7 @@ do
       })
       assert(term_chan ~= 0)
       --follow
-      api.nvim_win_set_cursor(winid, { buflines.count(view.bufnr), 0 })
+      wincursor.g1(winid, buflines.count(view.bufnr), 0)
 
       view.term_chan = term_chan
     end
@@ -110,7 +111,7 @@ do
     ctx.modifiable(self.bufnr, function() buflines.replaces(self.bufnr, -2, -1, data) end)
     prefer.bo(self.bufnr, "modified", false)
     --todo: follow
-    -- api.nvim_win_set_cursor(winid, { buflines.count(self.bufnr), 0 })
+    -- wincursor.g1(winid, buflines.count(self.bufnr), 0)
   end
 
   function SourceView(winid)
