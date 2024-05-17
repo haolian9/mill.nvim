@@ -1,11 +1,17 @@
-a plugin that executes file and shows realtime result in a nvim window
+to run/execute/compile/interprete a buffer
 
-## status: just-work
+## features
+* external runner by filetype
+* `:source` lua/vimscript
+* `millet-line`, similar to modeline
+
+## status
+* just-work
 
 # prerequisites
 * linux
-* nvim 0.8.*
+* nvim 0.10.*
 * haolian9/infra.nvim
 
 ## thanks
-* asyncrun which inspired me to roll my own one in nvim world
+* asyncrun which inspired me to roll my own one
