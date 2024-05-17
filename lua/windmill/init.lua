@@ -1,7 +1,6 @@
 local M = {}
 
 local bufpath = require("infra.bufpath")
-local ex = require("infra.ex")
 local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill", "info")
 local prefer = require("infra.prefer")
@@ -30,9 +29,7 @@ function M.run()
   local millet = millets.find(bufnr)
   jelly.debug("millet='%s'", millet)
   --to support: `source`, `source a.lua`, `source a.vim`
-  if millet and strlib.startswith(millet, "source") then
-    return engine.source(millet)
-  end
+  if millet and strlib.startswith(millet, "source") then return engine.source(millet) end
 
   local fpath = bufpath.file(bufnr)
   if fpath == nil then return jelly.warn("not exists on disk") end
