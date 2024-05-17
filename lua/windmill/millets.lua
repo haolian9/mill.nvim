@@ -21,7 +21,7 @@ do
     local prefix = resolve_millet_prefix(bufnr)
     if prefix == nil then return end
 
-    local modelines = prefer.bo(bufnr, "modelines")
+    local modelines = vim.go.modelines
     for line in fn.slice(buflines.iter_reversed(bufnr), 1, modelines + 1) do
       if strlib.startswith(line, prefix) then return string.sub(line, #prefix + 1) end
     end
