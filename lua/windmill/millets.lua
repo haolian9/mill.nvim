@@ -1,7 +1,7 @@
 local M = {}
 
 local buflines = require("infra.buflines")
-local fn = require("infra.fn")
+local itertools = require("infra.itertools")
 local jelly = require("infra.jellyfish")("windmill.modeline", "info")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
@@ -22,7 +22,7 @@ do
     if prefix == nil then return end
 
     local modelines = vim.go.modelines
-    for line in fn.slice(buflines.iter_reversed(bufnr), 1, modelines + 1) do
+    for line in itertools.slice(buflines.iter_reversed(bufnr), 1, modelines + 1) do
       if strlib.startswith(line, prefix) then return string.sub(line, #prefix + 1) end
     end
     jelly.debug("found no millets in last %d line", modelines)
@@ -36,7 +36,7 @@ end
 ---@param fpath string @aka, '%:p'
 ---@return string[]
 function M.normalize(millet, fpath)
-  local parts = fn.split(millet, " ")
+  local parts = strlib.splits(millet, " ")
 
   do -- inject/replace fpath
     local placeholder_index

@@ -1,12 +1,12 @@
 local M = {}
 
 local augroups = require("infra.augroups")
+local strlib = require("infra.strlib")
 local buflines = require("infra.buflines")
 local bufrename = require("infra.bufrename")
 local ctx = require("infra.ctx")
 local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
-local fn = require("infra.fn")
 local jelly = require("infra.jellyfish")("windmill.engine", "info")
 local prefer = require("infra.prefer")
 local project = require("infra.project")
@@ -214,7 +214,7 @@ function M.spawn(cmd, cwd)
 end
 
 function M.source(cmd)
-  local parts = fn.split(cmd, " ", 1)
+  local parts = strlib.splits(cmd, " ", 1)
   assert(parts[1] == "source")
 
   local view ---@type windmill.engine.SourceView
@@ -226,7 +226,7 @@ function M.source(cmd)
 
   local ok, output = pcall(api.nvim_cmd, { cmd = "source", args = { parts[2] } }, { output = true })
   assert(type(output), "string")
-  view:write_all(fn.split(output, "\n"))
+  view:write_all(strlib.splits(output, "\n"))
   view.exit_code = ok and 0 or 1
 end
 
