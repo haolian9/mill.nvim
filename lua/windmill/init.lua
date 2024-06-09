@@ -1,7 +1,7 @@
 local M = {}
 
 local bufpath = require("infra.bufpath")
-local itertools = require("infra.itertools")
+local its = require("infra.its")
 local jelly = require("infra.jellyfish")("windmill", "info")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
@@ -43,7 +43,7 @@ function M.run()
   do -- then ft
     local runner = filetype_runners[prefer.bo(bufnr, "filetype")]
     if runner ~= nil then
-      local cmd = itertools.tolist(itertools.chained(runner, { fpath }))
+      local cmd = its(runner):chained({ fpath }):tolist()
       return engine.spawn(cmd)
     end
   end
