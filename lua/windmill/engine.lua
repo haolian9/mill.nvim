@@ -1,20 +1,19 @@
 local M = {}
 
 local augroups = require("infra.augroups")
-local strlib = require("infra.strlib")
 local buflines = require("infra.buflines")
 local bufrename = require("infra.bufrename")
 local ctx = require("infra.ctx")
 local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
 local jelly = require("infra.jellyfish")("windmill.engine", "info")
+local ni = require("infra.ni")
 local prefer = require("infra.prefer")
 local project = require("infra.project")
+local strlib = require("infra.strlib")
 local unsafe = require("infra.unsafe")
 local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
-
-local api = vim.api
 
 local facts = {
   tty_height = 10,
@@ -53,7 +52,7 @@ do
     local view = setmetatable({}, Impl)
 
     do
-      local bufnr = api.nvim_create_buf(false, true) --no ephemeral here
+      local bufnr = ni.create_buf(false, true) --no ephemeral here
       prefer.bo(bufnr, "bufhidden", "wipe")
       bufrename(bufnr, string.format("windmill://%d", bufnr))
 
@@ -76,10 +75,10 @@ do
       view.bufnr = bufnr
     end
 
-    api.nvim_win_set_buf(winid, view.bufnr)
+    ni.win_set_buf(winid, view.bufnr)
 
     do
-      local term_chan = api.nvim_open_term(view.bufnr, {
+      local term_chan = ni.open_term(view.bufnr, {
         on_input = function(event, term, _bufnr, data)
           local _, _, _ = event, term, _bufnr
           assert(view.proc_chan ~= nil)
@@ -117,7 +116,7 @@ do
   function SourceView(winid)
     local bufnr = Ephemeral({ namepat = "windmill://{bufnr}", modifiable = false })
 
-    api.nvim_win_set_buf(winid, bufnr)
+    ni.win_set_buf(winid, bufnr)
 
     return setmetatable({ bufnr = bufnr }, Impl)
   end
@@ -135,7 +134,7 @@ do
 
   function state:is_win_valid()
     if self.winid == nil then return false end
-    return api.nvim_win_is_valid(self.winid)
+    return ni.win_is_valid(self.winid)
   end
 
   function state:has_one_running()
@@ -149,10 +148,10 @@ local function open_win()
   do -- the same as `:copen`
     winsplit("below")
     ex("wincmd", "J")
-    winid = api.nvim_get_current_win()
+    winid = ni.get_current_win()
     if facts.keep_focus then ex("wincmd", "p") end
 
-    api.nvim_win_set_height(winid, facts.window_height)
+    ni.win_set_height(winid, facts.window_height)
     prefer.wo(winid, "winfixheight", true)
   end
 
@@ -224,7 +223,7 @@ function M.source(cmd)
     state.view = view
   end
 
-  local ok, output = pcall(api.nvim_cmd, { cmd = "source", args = { parts[2] } }, { output = true })
+  local ok, output = pcall(ni.cmd, { cmd = "source", args = { parts[2] } }, { output = true })
   assert(type(output), "string")
   view:write_all(strlib.splits(output, "\n"))
   view.exit_code = ok and 0 or 1

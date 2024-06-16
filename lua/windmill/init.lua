@@ -3,13 +3,12 @@ local M = {}
 local bufpath = require("infra.bufpath")
 local its = require("infra.its")
 local jelly = require("infra.jellyfish")("windmill", "info")
+local ni = require("infra.ni")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
 
 local engine = require("windmill.engine")
 local millets = require("windmill.millets")
-
-local api = vim.api
 
 local filetype_runners = {
   python = { "python" },
@@ -24,7 +23,7 @@ local filetype_runners = {
 }
 
 function M.run()
-  local bufnr = api.nvim_get_current_buf()
+  local bufnr = ni.get_current_buf()
 
   local millet = millets.find(bufnr)
   jelly.debug("millet='%s'", millet)
