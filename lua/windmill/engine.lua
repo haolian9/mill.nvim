@@ -56,7 +56,7 @@ do
       prefer.bo(bufnr, "bufhidden", "wipe")
       bufrename(bufnr, string.format("windmill://%d", bufnr))
 
-      local aug = augroups.BufAugroup(bufnr, --[[autounlink]] false)
+      local aug = augroups.BufAugroup(bufnr, "windmill", false)
       aug:once("TermClose", {
         callback = function(args)
           assert(args.buf == bufnr)
@@ -68,7 +68,7 @@ do
         callback = function()
           aug:unlink()
           if view.proc_chan == nil then return end
-          vim.fn.jobclose(view.proc_chan)
+          vim.fn.chanclose(view.proc_chan)
         end,
       })
 
@@ -88,8 +88,7 @@ do
         end,
       })
       assert(term_chan ~= 0)
-      --follow
-      wincursor.g1(winid, buflines.count(view.bufnr), 0)
+      wincursor.follow(winid, "bol")
 
       view.term_chan = term_chan
     end
@@ -101,6 +100,7 @@ end
 local SourceView
 do
   ---@class windmill.engine.SourceView: windmill.engine.View
+  ---@field winid integer
   local Impl = {}
   Impl.__index = Impl
 
@@ -109,8 +109,7 @@ do
     assert(type(data) == "table")
     ctx.modifiable(self.bufnr, function() buflines.replaces(self.bufnr, -2, -1, data) end)
     prefer.bo(self.bufnr, "modified", false)
-    --todo: follow
-    -- wincursor.g1(winid, buflines.count(self.bufnr), 0)
+    wincursor.follow(self.winid, "bol")
   end
 
   function SourceView(winid)
@@ -118,7 +117,7 @@ do
 
     ni.win_set_buf(winid, bufnr)
 
-    return setmetatable({ bufnr = bufnr }, Impl)
+    return setmetatable({ winid = winid, bufnr = bufnr }, Impl)
   end
 end
 
