@@ -2,13 +2,13 @@ local M = {}
 
 local bufpath = require("infra.bufpath")
 local its = require("infra.its")
-local jelly = require("infra.jellyfish")("windmill", "info")
+local jelly = require("infra.jellyfish")("mill", "info")
 local ni = require("infra.ni")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
 
-local engine = require("windmill.engine")
-local millets = require("windmill.millets")
+local engine = require("mill.engine")
+local millets = require("mill.millets")
 
 local filetype_runners = {
   python = { "python" },

@@ -2,7 +2,7 @@ local M = {}
 
 local buflines = require("infra.buflines")
 local itertools = require("infra.itertools")
-local jelly = require("infra.jellyfish")("windmill.modeline", "info")
+local jelly = require("infra.jellyfish")("mill.modeline", "info")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
 
