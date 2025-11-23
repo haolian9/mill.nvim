@@ -1,4 +1,4 @@
-to run/execute/compile/interprete a buffer
+to run/execute/compile/interpret a buffer
 
 ## features
 * external runner by filetype
@@ -8,9 +8,9 @@ to run/execute/compile/interprete a buffer
 ## status
 * just-work
 
-# prerequisites
+## prerequisites
 * linux
-* nvim 0.10.*
+* nvim 0.11.*
 * haolian9/infra.nvim
 
 ## thanks
