@@ -16,8 +16,8 @@ local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
 
 local facts = {
-  tty_height = 10,
-  window_height = 10,
+  tty_height = 5,
+  window_height = 5,
   keep_focus = true,
 }
 
