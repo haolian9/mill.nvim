@@ -1,6 +1,5 @@
 local M = {}
 
-local augroups = require("infra.augroups")
 local buflines = require("infra.buflines")
 local bufrename = require("infra.bufrename")
 local ctx = require("infra.ctx")
@@ -36,13 +35,24 @@ do
     Impl.__index = Impl
 
     ---@param data string[]
-    function Impl:write_all(data) vim.fn.chansend(self.term_chan, data) end
+    function Impl:write_all(data)
+      if self.term_chan == nil then return end
+      vim.fn.chansend(self.term_chan, data)
+    end
 
     function Impl:deinit()
-      vim.fn.chanclose(self.term_chan)
-      self.term_chan = nil
-      vim.fn.chanclose(self.proc_chan)
-      self.proc_chan = nil
+      if self.proc_chan ~= nil then
+        vim.fn.chanclose(self.proc_chan)
+        self.proc_chan = nil
+      end
+      if self.term_chan ~= nil then
+        vim.fn.chanclose(self.term_chan)
+        self.term_chan = nil
+      end
+      if ni.buf_is_valid(self.bufnr) and prefer.bo(self.bufnr, "buftype") ~= "buftype" then --
+        --dirty hack to unblock :qa
+        unsafe.prepare_help_buffer(self.bufnr)
+      end
     end
   end
 
@@ -56,36 +66,26 @@ do
       prefer.bo(bufnr, "bufhidden", "wipe")
       bufrename(bufnr, string.format("mill://%d", bufnr))
 
-      local aug = augroups.BufAugroup(bufnr, "mill", false)
-      aug:once("TermClose", {
-        callback = function(args)
-          assert(args.buf == bufnr)
-          assert(prefer.bo(bufnr, "buftype") == "terminal", "once job")
-          unsafe.prepare_help_buffer(bufnr)
-        end,
-      })
-      aug:once("BufWipeout", {
-        callback = function()
-          aug:unlink()
-          if view.proc_chan == nil then return end
-          vim.fn.chanclose(view.proc_chan)
-        end,
-      })
+      --user can abort the proc by closing TermView window
+      ni.buf_attach(bufnr, false, { on_detach = function() view:deinit() end })
 
       view.bufnr = bufnr
     end
 
+    prefer.wo(winid, "winfixbuf", false)
     ni.win_set_buf(winid, view.bufnr)
+    prefer.wo(winid, "winfixbuf", true)
 
     do
       local term_chan = ni.open_term(view.bufnr, {
-        on_input = function(event, term, _bufnr, data)
-          local _, _, _ = event, term, _bufnr
+        on_input = function(_, _, _, data)
           assert(view.proc_chan ~= nil)
           -- necessary for redirecting proc_chan.stdout -> libvterm.stdout -> proc.stdin
-          -- eg, \27[6n
+          -- eg, \27[6n, <ctrl-c>
           vim.fn.chansend(view.proc_chan, data)
         end,
+        --todo: resize win height, also rm '[term closed]' line
+        -- on_exit = function() end
       })
       assert(term_chan ~= 0)
       wincursor.follow(winid, "bol")
